@@ -1,0 +1,157 @@
+Game Title
+LetterWave Quest
+
+Elevator Pitch
+Turn words into music!  LetterWave Quest is a lightweight Python audio “game”/app that reads any uppercase word, “draws” each letter as a waveform over one 4-beat measure at your chosen BPM, stitches them into a tune, plays it back and lets you save it as a .wav file.  The shapes of A, B, C … Z literally become audio!
+
+Core Features
+1. Word-to-Waveform: each letter is rendered (via a font) into an image, then each vertical slice of that glyph drives audio amplitude over time.
+2. Tempo Control: user picks BPM; each letter plays for exactly one 4/4 measure.
+3. Real-time Playback: simple console UI to type a word, hear it immediately, and optionally save to disk.
+4. Low-cost, pure Python: uses only numpy, PIL (Pillow), wave, and simpleaudio (or built-in wave+oss/portaudio).
+
+Game/UX Loop
+1. Launch app → welcome screen → choose “New Composition” or “Options.”
+2. In New Composition: prompt for a word (letters only).  Convert to uppercase.
+3. Prompt for BPM (default e.g. 120).
+4. Generate waveform for each letter in sequence.
+5. Play back the full audio clip.
+6. Menu options:
+   – “Save .wav” → specify filename → write to disk.
+   – “Share code” → prints Python one-liner to reproduce it.
+   – “Try another word” → loop back.
+   – “Exit.”
+
+Technical Design
+
+1. Audio Parameters
+   • sample_rate = 44100 Hz
+   • bits_per_sample = 16 (PCM)
+   • channels = 1 (mono)
+   • measure_length_s = (4 beats) × (60 / BPM)
+
+2. Letter Rendering & Sampling
+   a. Use PIL to create an 8-bit grayscale image of size W×H (e.g. W=200, H=200).
+   b. Draw the uppercase letter in white on black background using a bold TTF font.
+   c. For each audio sample index i in [0 … N–1], where N = measure_length_s × sample_rate:
+      – Compute an x-coordinate: x = int((i / N) × (W–1))
+      – Read pixel column at x, average its brightness down the entire column (or sample a central row).
+      – Map brightness (0…255) to amplitude (–1.0 … +1.0).  For example:
+        amplitude = (column_mean/127.5 – 1.0) × envelope(i)
+      – Optionally apply an amplitude envelope (fade-in/out) to avoid clicks.
+
+3. Sequence Assembly
+   • For a word of length L, generate L blocks of N samples.
+   • Concatenate into one big numpy array of length L×N.
+   • Optionally insert brief rests or cross-fades.
+
+4. WAV File Output
+   • Normalize final waveform to full 16-bit range.
+   • Use Python’s wave module: set nchannels, sampwidth, framerate, writeframes().
+
+5. Playback
+   • Use simpleaudio.play_buffer() (if installed) or rely on OS default audio.
+
+6. User Input & Validation
+   • Accept only A–Z (ignore or error on other chars).
+   • Convert lowercase to uppercase.
+   • Validate numeric BPM (e.g. 40–300).
+
+Module Breakdown
+
+1. renderer.py
+   – init(font_path, img_size)
+   – render_letter(letter) → PIL.Image
+   – sample_image(img, num_samples) → numpy array of floats
+
+2. audioio.py
+   – assemble_sequence(list_of_arrays) → numpy array
+   – to_pcm16(waveform) → bytes
+   – save_wav(filename, pcm_bytes, sample_rate, channels)
+
+3. player.py
+   – play(waveform, sample_rate)
+
+4. ui.py (or main.py)
+   – menu loop, input prompts, calls renderer + audioio + player
+
+Pseudocode Sketch
+
+```
+import numpy as np, wave, sys
+from PIL import Image, ImageDraw, ImageFont
+import simpleaudio as sa
+
+SAMPLE_RATE = 44100
+
+def bpm_to_seconds(bpm):
+    return 4 * 60.0 / bpm
+
+def render_letter_wave(letter, bpm, font, img_size=(200,200)):
+    # 1) draw letter
+    img = Image.new('L', img_size, 0)
+    draw = ImageDraw.Draw(img)
+    w,h = draw.textsize(letter, font=font)
+    pos = ((img_size[0]-w)//2,(img_size[1]-h)//2)
+    draw.text(pos, letter, fill=255, font=font)
+    # 2) sample
+    duration = bpm_to_seconds(bpm)
+    N = int(SAMPLE_RATE * duration)
+    data = np.zeros(N, dtype=np.float32)
+    pixels = np.array(img)
+    for i in range(N):
+        x = int(i/N * (img_size[0]-1))
+        column = pixels[:, x]
+        col_mean = column.mean()
+        # map 0–255 to –1.0…+1.0
+        amp = (col_mean/127.5 - 1.0)
+        # simple fade in/out
+        env = min(i/N, 1 - i/N)*2
+        data[i] = amp * env
+    return data
+
+def word_to_wave(word, bpm, font):
+    segments = []
+    for ch in word.upper():
+        if not 'A' <= ch <= 'Z':
+            continue
+        seg = render_letter_wave(ch, bpm, font)
+        segments.append(seg)
+    return np.concatenate(segments)
+
+def save_wavefile(filename, waveform):
+    # normalize to int16
+    max_val = np.max(np.abs(waveform))
+    pcm = np.int16((waveform / max_val) * 32767)
+    with wave.open(filename, 'w') as wf:
+        wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(SAMPLE_RATE)
+        wf.writeframes(pcm.tobytes())
+
+def play_wave(waveform):
+    pcm = np.int16(waveform * 32767)
+    sa.play_buffer(pcm, 1, 2, SAMPLE_RATE).wait_done()
+
+def main():
+    font = ImageFont.truetype("arial.ttf", 180)
+    while True:
+        word = input("Enter word (A-Z only): ").strip().upper()
+        bpm = int(input("Enter BPM (e.g. 120): "))
+        wave = word_to_wave(word, bpm, font)
+        play_wave(wave)
+        if input("Save WAV? (y/n) ")=='y':
+            fn = input("Filename: ")
+            save_wavefile(fn+".wav", wave)
+        if input("Try another? (y/n) ")!='y':
+            break
+
+if __name__=='__main__':
+    main()
+```
+
+Frugal & Creative Touches
+• Cache rendered images so repeated letters don’t redraw every time.
+• Offer stereo panning: odd letters left, even letters right.
+• Add “effects” knob: bit-crusher, delay, or reverb with pure Python.
+• Let players “score” each other’s word-tunes in a lightweight shareable format.
+
+That’s LetterWave Quest in a nutshell––a playful blend of typography, DSP and Python creativity. Have fun coding and listening!
