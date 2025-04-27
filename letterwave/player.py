@@ -8,7 +8,7 @@ try:
 except ImportError:
     _has_simpleaudio = False
 
-from .audioio import to_pcm16
+from audioio import to_pcm16
 
 def play(waveform, sample_rate=44100, channels=1):
     """

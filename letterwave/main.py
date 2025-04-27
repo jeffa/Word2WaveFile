@@ -4,9 +4,9 @@ Main UI and application logic for LetterWave Quest.
 import sys
 import os
 
-from .renderer import Renderer
-from .audioio import assemble_sequence, save_wav
-from .player import play
+from renderer import Renderer
+from audioio import assemble_sequence, save_wav
+from player import play
 
 SAMPLE_RATE = 44100
 
