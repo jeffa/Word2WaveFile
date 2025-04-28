@@ -1,3 +1,4 @@
+Problem #1
 $ python letterwave/main.py
 LetterWave Quest
 
@@ -48,3 +49,130 @@ I’ve tracked down the error:
         * Fall back to the old `draw.textsize()` in environments that still have it.
 
     With that in place, letter‐shapes will center properly again under Pillow 10+. Let me know if you run into anything else!
+
+Problem #2
+$ python letterwave/main.py
+LetterWave Quest
+
+Menu:
+1) New Composition
+2) Options
+3) Exit
+Select option: 2
+
+Options:
+1) Set default BPM (current 120)
+2) Set font path (current system default)
+3) Back
+Select option: 3
+
+Menu:
+1) New Composition
+2) Options
+3) Exit
+Select option: 1
+Enter word (A-Z only): HELLO
+Enter BPM (default 120): 120
+Traceback (most recent call last):
+  File "/Users/jeffa/CODE/word2wavefile/letterwave/main.py", line 97, in <module>
+    main()
+  File "/Users/jeffa/CODE/word2wavefile/letterwave/main.py", line 50, in main
+    segments.append(renderer.render_wave(ch, num_samples))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jeffa/CODE/word2wavefile/letterwave/renderer.py", line 69, in render_wave
+    img = self.render_letter(letter)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jeffa/CODE/word2wavefile/letterwave/renderer.py", line 33, in render_letter
+    w, h = draw.textsize(letter, font=self.font)
+           ^^^^^^^^^^^^^
+AttributeError: 'ImageDraw' object has no attribute 'textsize'
+
+------------------------------------
+
+Solution Attempt
+I’ve tracked down the error:
+
+    • Pillow 10 removed the old ImageDraw.Draw.textsize() method, so draw.textsize(…) raises AttributeError.
+    • The replacement is draw.textbbox(…), which returns a (left, top, right, bottom) box you can use to compute width and height.
+
+    I’ve changed render_letter() to:
+
+        * Try `draw.textbbox((0,0),…)` to get a bbox and derive `w,h`.
+        * Fall back to the old `draw.textsize()` in environments that still have it.
+
+    With that in place, letter‐shapes will center properly again under Pillow 10+. Let me know if you run into anything else!
+
+Problem #2
+$ python letterwave/main.py
+LetterWave Quest
+
+Menu:
+1) New Composition
+2) Options
+3) Exit
+Select option: 2
+
+Options:
+1) Set default BPM (current 120)
+2) Set font path (current system default)
+3) Back
+Select option: 3
+
+Menu:
+1) New Composition
+2) Options
+3) Exit
+Select option: 1
+Enter word (A-Z only): HELLO
+Enter BPM (default 120): 120
+Traceback (most recent call last):
+  File "/Users/jeffa/CODE/word2wavefile/letterwave/main.py", line 97, in <module>
+    main()
+  File "/Users/jeffa/CODE/word2wavefile/letterwave/main.py", line 50, in main
+    segments.append(renderer.render_wave(ch, num_samples))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jeffa/CODE/word2wavefile/letterwave/renderer.py", line 69, in render_wave
+    img = self.render_letter(letter)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jeffa/CODE/word2wavefile/letterwave/renderer.py", line 33, in render_letter
+    w, h = draw.textsize(letter, font=self.font)
+           ^^^^^^^^^^^^^
+AttributeError: 'ImageDraw' object has no attribute 'textsize'
+
+------------------------------------
+
+Solution Attempt
+I’ve tracked down the error:
+
+    • Pillow 10 removed the old ImageDraw.Draw.textsize() method, so draw.textsize(…) raises AttributeError.
+    • The replacement is draw.textbbox(…), which returns a (left, top, right, bottom) box you can use to compute width and height.
+
+    I’ve changed render_letter() to:
+
+        * Try `draw.textbbox((0,0),…)` to get a bbox and derive `w,h`.
+        * Fall back to the old `draw.textsize()` in environments that still have it.
+
+    With that in place, letter‐shapes will center properly again under Pillow 10+. Let me know if you run into anything else!
+
+Problem #2
+
+Segmentation fault: 11
+
+Solution Attempt
+
+ I’ve switched the player over from simpleaudio to sounddevice and moved playback into a background thread so the main thread never sits blocked waiting on C-level audio calls. In
+    particular:
+
+    • In letterwave/player.py
+      – Replaced the simpleaudio import/usage with sounddevice.
+      – Spawn playback in a daemon thread (sd.play + sd.wait inside a thread) instead of calling wait() on the main thread.
+      – Gracefully print an error if sounddevice isn’t available or playback fails.
+
+    • In requirements.txt
+      – Removed simpleaudio, added sounddevice>=0.4.0.
+
+    • In README.md
+      – Updated the “Pure Python…” line to mention sounddevice instead of simpleaudio.
+
+    With these changes you should no longer get an “Segmentation fault: 11” on macOS—just reinstall your dependencies (pip install -r requirements.txt) and give it another try. Let me know
+    how playback goes!

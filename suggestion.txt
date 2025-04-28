@@ -1,0 +1,10 @@
+It looks like you’re hitting a low‐level crash in the audio subsystem, not in our pure-Python code. On macOS a “Segmentation fault: 11” during playback usually comes from one of two
+    things:
+
+      • Using simpleaudio on macOS without installing its portaudio backend correctly
+      • Feeding extremely large numpy buffers or invalid pointers into a C extension
+
+    Steps I recommend:
+
+        1. Switch from simpleaudio to sounddevice (which sits on top of PortAudio and is well-maintained on macOS).
+        2. Make sure we never block the main thread for long periods.

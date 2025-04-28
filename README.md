@@ -6,7 +6,7 @@ Turn words into music! LetterWave Quest is a lightweight Python audio game/app t
 - Word-to-Waveform: letters rendered into images; each vertical slice drives audio amplitude.
 - Tempo Control: user picks BPM; each letter plays for exactly one 4/4 measure.
 - Real-time Playback: console UI to type a word, hear it immediately, and optionally save to disk.
-- Pure Python: uses numpy, Pillow, wave, and simpleaudio.
+ - Pure Python: uses numpy, Pillow, wave, and sounddevice.
 
 ## Installation
 ```bash
