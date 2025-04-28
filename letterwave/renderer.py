@@ -30,7 +30,15 @@ class Renderer:
         """
         img = Image.new('L', self.img_size, 0)
         draw = ImageDraw.Draw(img)
-        w, h = draw.textsize(letter, font=self.font)
+        # Compute text bounding box to determine width and height
+        # Use textbbox (Pillow >=8.0) for accurate measurements
+        try:
+            bbox = draw.textbbox((0, 0), letter, font=self.font)
+            w = bbox[2] - bbox[0]
+            h = bbox[3] - bbox[1]
+        except AttributeError:
+            # Fallback for environments without textbbox (older Pillow)
+            w, h = draw.textsize(letter, font=self.font)
         pos = ((self.img_size[0] - w) // 2, (self.img_size[1] - h) // 2)
         draw.text(pos, letter, fill=255, font=self.font)
         return img

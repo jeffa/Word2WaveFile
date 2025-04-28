@@ -33,3 +33,18 @@ Traceback (most recent call last):
     w, h = draw.textsize(letter, font=self.font)
            ^^^^^^^^^^^^^
 AttributeError: 'ImageDraw' object has no attribute 'textsize'
+
+------------------------------------
+
+Solution Attempt
+I’ve tracked down the error:
+
+    • Pillow 10 removed the old ImageDraw.Draw.textsize() method, so draw.textsize(…) raises AttributeError.
+    • The replacement is draw.textbbox(…), which returns a (left, top, right, bottom) box you can use to compute width and height.
+
+    I’ve changed render_letter() to:
+
+        * Try `draw.textbbox((0,0),…)` to get a bbox and derive `w,h`.
+        * Fall back to the old `draw.textsize()` in environments that still have it.
+
+    With that in place, letter‐shapes will center properly again under Pillow 10+. Let me know if you run into anything else!
