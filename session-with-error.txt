@@ -1,0 +1,35 @@
+$ python letterwave/main.py
+LetterWave Quest
+
+Menu:
+1) New Composition
+2) Options
+3) Exit
+Select option: 2
+
+Options:
+1) Set default BPM (current 120)
+2) Set font path (current system default)
+3) Back
+Select option: 3
+
+Menu:
+1) New Composition
+2) Options
+3) Exit
+Select option: 1
+Enter word (A-Z only): HELLO
+Enter BPM (default 120): 120
+Traceback (most recent call last):
+  File "/Users/jeffa/CODE/word2wavefile/letterwave/main.py", line 97, in <module>
+    main()
+  File "/Users/jeffa/CODE/word2wavefile/letterwave/main.py", line 50, in main
+    segments.append(renderer.render_wave(ch, num_samples))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jeffa/CODE/word2wavefile/letterwave/renderer.py", line 69, in render_wave
+    img = self.render_letter(letter)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jeffa/CODE/word2wavefile/letterwave/renderer.py", line 33, in render_letter
+    w, h = draw.textsize(letter, font=self.font)
+           ^^^^^^^^^^^^^
+AttributeError: 'ImageDraw' object has no attribute 'textsize'
